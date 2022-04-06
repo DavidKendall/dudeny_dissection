@@ -125,10 +125,10 @@ function compute_dissection(side)
     lx, ly = lines_intersect(m_je, c_je, mp_je, cp_je_d)
     cp_je_k = y_intercept(mp_je, (kx, ky))
     mx, my = lines_intersect(m_je, c_je, mp_je, cp_je_k)
-    green = [(lx,ly), (ex,ey), (xs[3],ys[3]), (dx,dy), (lx, ly)]
     red = [(xs[1],ys[1]), (jx,jy), (lx,ly), (dx, dy), (xs[1], ys[1])]
-    yellow = [(kx,ky), (xs[2],ys[2]), (ex,ey), (mx, my), (kx,ky)]
+    green = [(lx,ly), (ex,ey), (xs[3],ys[3]), (dx,dy), (lx, ly)]
     blue = [(jx,jy), (kx,ky), (mx,my), (jx, jy)]
+    yellow = [(kx,ky), (xs[2],ys[2]), (ex,ey), (mx, my), (kx,ky)]
     return triangle, red, green, blue, yellow
 end
 
