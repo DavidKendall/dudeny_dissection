@@ -16,16 +16,16 @@ function deg_to_rad(d)
     return 2π * (d / 360.0)
 end
 
-function mid(xs, ys)
-    return sum(xs) / 2, sum(ys) / 2
+function mid((ax,ay), (bx,by))
+    return (ax + bx) / 2, (ay + by) / 2
 end
 
-function distance(xs, ys)
-    return hypot(xs[1]-xs[2], ys[1]-ys[2])
+function distance((ax, ay), (bx, by))
+    return hypot(ax - bx, ay - by)
 end
 
-function gradient(xs, ys)
-    return (ys[1] - ys[2]) / (xs[1] - xs[2])
+function gradient((ax, ay), (bx, by))
+    return (ay - by) / (ax - bx)
 end
 
 function y_intercept(m, (px, py))
@@ -33,18 +33,10 @@ function y_intercept(m, (px, py))
 end
 
 function equitriangle(side)
-    xs = Vector{Float64}(undef, 4)
-    ys = Vector{Float64}(undef, 4)
-    xs[1] = 0.
-    ys[1] = 0.
-    xs[2] = xs[1] + side
-    ys[2] = 0.
-    x, y = polar_to_xy((deg_to_rad(120), side)) .+ (side, 0)
-    xs[3] = x
-    ys[3] = y
-    xs[4] = 0.
-    ys[4] = 0.
-    return xs, ys
+    a = 0.0, 0.0
+    b = polar_to_xy((deg_to_rad(60), side))
+    c = side, 0.0
+    return (a, b, c)
 end
 
 function circle(radius, c=(0., 0.); n_points=1000)
@@ -102,46 +94,57 @@ function rotate(v, c, α)
     return [rotate(p, c, α) for p in v]
 end
 
+function close(points)
+    n = length(points) + 1
+    xs = Vector{Float64}(undef, n)
+    ys = Vector{Float64}(undef, n)
+    for i in 1:(n - 1)
+        xs[i], ys[i] = points[i]
+    end
+    xs[n], ys[n] = points[1]
+    return xs, ys
+end
+
 function compute_dissection(side)
-    xs, ys = equitriangle(side)
-    triangle = zip(xs, ys)
-    dx, dy = mid(xs[3:4], ys[3:4])
-    ex, ey = mid(xs[2:3], ys[2:3])
-    m_ae = gradient([ex,xs[1]], [ey,ys[1]])
-    c_ae = y_intercept(m_ae, (ex, ey))
-    fx, fy = arc_line_intersect(m_ae, c_ae, (ex,ey), side / 2.0, x_lower=ex, y_lower=ey)
-    gx, gy = mid([xs[1], fx], [ys[1], fy])
-    m_eb = gradient([ex, xs[3]], [ey, ys[3]])
-    c_eb = y_intercept(m_eb, (ex, ey))
-    len_ag = distance([xs[1], gx], [ys[1], gy])
-    hx, hy = arc_line_intersect(m_eb, c_eb, (gx, gy), len_ag, y_lower=gy)
-    len_eh = distance([ex, hx], [ey, hy])
-    jx, jy = arc_line_intersect(0, 0, (ex, ey), len_eh)
-    kx, ky = jx + side / 2.0, 0.0
-    m_je = gradient([jx, ex], [jy, ey])
-    c_je = y_intercept(m_je, (jx, jy))
+    triangle = (a, b, c) = ((ax, ay), (bx, by), (cx, cy)) = equitriangle(side)
+    d = mid(a, b)
+    e = ex, ey = mid(b, c)
+    m_ae = gradient(a, e)
+    c_ae = y_intercept(m_ae, e)
+    f = arc_line_intersect(m_ae, c_ae, e, side / 2.0, x_lower=ex, y_lower=ey)
+    g = _, gy = mid(a, f)
+    m_eb = gradient(e, b)
+    c_eb = y_intercept(m_eb, e)
+    len_ag = distance(a, g)
+    h = arc_line_intersect(m_eb, c_eb, g, len_ag, y_lower=gy)
+    len_eh = distance(e, h)
+    j = jx, _ = arc_line_intersect(0, 0, e, len_eh)
+    k = jx + side / 2.0, 0.0
+    m_je = gradient(j, e)
+    c_je = y_intercept(m_je, j)
     mp_je = -1.0 / m_je
-    cp_je_d = y_intercept(mp_je, (dx, dy))
-    lx, ly = lines_intersect(m_je, c_je, mp_je, cp_je_d)
-    cp_je_k = y_intercept(mp_je, (kx, ky))
-    mx, my = lines_intersect(m_je, c_je, mp_je, cp_je_k)
-    red = [(xs[1],ys[1]), (jx,jy), (lx,ly), (dx, dy), (xs[1], ys[1])]
-    green = [(lx,ly), (ex,ey), (xs[3],ys[3]), (dx,dy), (lx, ly)]
-    blue = [(jx,jy), (kx,ky), (mx,my), (jx, jy)]
-    yellow = [(kx,ky), (xs[2],ys[2]), (ex,ey), (mx, my), (kx,ky)]
+    cp_je_d = y_intercept(mp_je, d)
+    l = lines_intersect(m_je, c_je, mp_je, cp_je_d)
+    cp_je_k = y_intercept(mp_je, k)
+    m = lines_intersect(m_je, c_je, mp_je, cp_je_k)
+    red = [a, j, l, d]
+    green = [l, e, b, d]
+    blue = [j, k, m]
+    yellow = [k, c, e, m]
     return triangle, red, green, blue, yellow
 end
 
 function show_dissection(triangle, red, green, blue, yellow)
-    xs, ys = [p[1] for p in triangle], [p[2] for p in triangle] 
-    r_xs, r_ys = [p[1] for p in red], [p[2] for p in red]
-    b_xs, b_ys = [p[1] for p in blue], [p[2] for p in blue]
-    g_xs, g_ys = [p[1] for p in green], [p[2] for p in green]
-    y_xs, y_ys = [p[1] for p in yellow], [p[2] for p in yellow]
-    dx, dy = mid(xs[3:4], ys[3:4])
-    ex, ey = mid(xs[2:3], ys[2:3])
+    xs, ys = close(triangle) 
+    r_xs, r_ys = close(red) 
+    b_xs, b_ys = close(blue) 
+    g_xs, g_ys = close(green) 
+    y_xs, y_ys = close(yellow) 
+    (a, b, c) = triangle
+    dx, dy = mid(a, b)
+    ex, ey = mid(b, c)
     kx, ky = yellow[1]
-    side = distance(xs[1:2], ys[1:2])
+    side = distance(a, b)
     limits = (-1, side+1)
     tick = floor(limits[1]):ceil(limits[2])
     plot(xs, ys, legend=false, aspect_ratio=:equal, tick=tick, limits=limits)
@@ -155,32 +158,35 @@ function show_dissection(triangle, red, green, blue, yellow)
 end
 
 function animate_dissection(triangle, red, green, blue, yellow)
-    xs, ys = [p[1] for p in triangle], [p[2] for p in triangle]
-    dx, dy = mid(xs[3:4], ys[3:4])
-    ex, ey = mid(xs[2:3], ys[2:3])
-    g_xs, g_ys = [p[1] for p in green], [p[2] for p in green]
+    (a, b, c) = triangle
+    d = dx, dy = mid(a, b)
+    e = ex, ey = mid(b, c)
+    k = kx, ky = yellow[1]
+    xs, ys = close(triangle) 
+    g_xs, g_ys = close(green) 
     α = 0.01
     total_angle = 0.0
-    side = distance(xs[1:2], ys[1:2])
+    side = distance(a, b)
     limits = (-side/1.8, 2*side)
     tick = floor(limits[1]):ceil(limits[2])
     @gif while total_angle ≤ π    
         plot(xs, ys, legend=false, aspect_ratio=:equal, tick=tick, limits=limits)
         plot!(g_xs, g_ys, fill=(0, :lightgreen))
-        red = rotate(red, (dx, dy), -α)
-        r_xs, r_ys = [p[1] for p in red], [p[2] for p in red]
+        red = rotate(red, d, -α)
+        r_xs, r_ys = close(red) 
         plot!(r_xs, r_ys, fill=(0, :red))
-        blue = rotate(blue, yellow[1], 2α)
-        yellow = rotate(yellow, (ex, ey), α)
-        y_xs, y_ys = [p[1] for p in yellow], [p[2] for p in yellow]
+        blue = rotate(blue, k, 2α)
+        yellow = rotate(yellow, e, α)
+        y_xs, y_ys = close(yellow) 
         plot!(y_xs, y_ys, fill=(0, :yellow))
-        shift = (y_xs[1], y_ys[1]) .- blue[2]
+        k = kx, ky = yellow[1]
+        shift = k .- blue[2]
         blue = [p .+ shift for p in blue]
-        b_xs, b_ys = [p[1] for p in blue], [p[2] for p in blue]
+        b_xs, b_ys = close(blue) 
         plot!(b_xs, b_ys, fill=(0, :blue))
         plot!([dx], [dy], marker=:circle)
         plot!([ex], [ey], marker=:circle)
-        plot!([y_xs[1]], [y_ys[1]], marker=:circle)
+        plot!([kx], [ky], marker=:circle)
         total_angle += α
     end
 end
@@ -190,81 +196,5 @@ function main(side)
     animate_dissection(triangle, red, green, blue, yellow)
     show_dissection(triangle, red, green, blue, yellow)
 end
-
-# function main(side::Number)
-#     xs, ys = equitriangle(side)
-#     dx, dy = mid(xs[3:4], ys[3:4])
-#     ex, ey = mid(xs[2:3], ys[2:3])
-
-#     m_ae = gradient([ex,xs[1]], [ey,ys[1]])
-#     c_ae = y_intercept(m_ae, (ex, ey))
-#     fx, fy = arc_line_intersect(m_ae, c_ae, (ex,ey), side / 2.0, x_lower=ex, y_lower=ey)
-#     xs_ae = collect(range(start=0, stop=fx, length=500))
-#     ys_ae = m_ae .* xs_ae
-
-#     xs_bf, ys_bf = arc(side/ 2.0, (ex, ey), p1=(xs[3], ys[3]), p2=(fx, fy))
-
-#     gx, gy = mid([xs[1], fx], [ys[1], fy])
-
-#     m_eb = gradient([ex, xs[3]], [ey, ys[3]])
-#     c_eb = y_intercept(m_eb, (ex, ey))
-#     len_ag = distance([xs[1], gx], [ys[1], gy])
-#     xs_af, ys_af = arc(len_ag, (gx, gy), p1=(fx, fy), p2=(xs[1], ys[1]), adj=π)
-
-#     hx, hy = arc_line_intersect(m_eb, c_eb, (gx, gy), len_ag, y_lower=gy)
-#     len_eh = distance([ex, hx], [ey, hy])
-#     jx, jy = arc_line_intersect(0, 0, (ex, ey), len_eh)
-#     # xs_hj, ys_hj = arc(len_eh, (ex, ey), p1=(hx, hy), p2=(jx, jy), adj=π)
-#     kx, ky = jx + side / 2.0, 0.0
-
-#     m_je = gradient([jx, ex], [jy, ey])
-#     c_je = y_intercept(m_je, (jx, jy))
-#     mp_je = -1.0 / m_je
-#     cp_je_d = y_intercept(mp_je, (dx, dy))
-#     lx, ly = lines_intersect(m_je, c_je, mp_je, cp_je_d)
-#     cp_je_k = y_intercept(mp_je, (kx, ky))
-#     mx, my = lines_intersect(m_je, c_je, mp_je, cp_je_k)
-
- 
-#     green = [(lx,ly), (ex,ey), (xs[3],ys[3]), (dx,dy), (lx, ly)]
-#     red = [(xs[1],ys[1]), (jx,jy), (lx,ly), (dx, dy), (xs[1], ys[1])]
-#     yellow = [(kx,ky), (xs[2],ys[2]), (ex,ey), (mx, my), (kx,ky)]
-#     blue = [(jx,jy), (kx,ky), (mx,my), (jx, jy)]
-#     make_gif(side, red, green, blue, yellow)
-# #     g_xs, g_ys = [p[1] for p in green], [p[2] for p in green]
-# #     plot(xs, ys, legend=false, aspect_ratio=:equal)
-# #     plot!(g_xs, g_ys, fill=(0, :lightgreen))
-# #    # plot!([xs[1], jx, lx, dx, xs[1]], [ys[1], jy, ly, dy, ys[1]], fill=(0, :red))
-# #     # plot!([jx, kx, mx, jx], [jy, ky, my, jy], fill=(0, :blue))
-# #     # plot!([kx, xs[2], ex, mx, kx], [ky, ys[2], ey, my, ky], fill=(0, :yellow))
-# #     red = rotate(red, (dx, dy), -π)
-# #     r_xs, r_ys = [p[1] for p in red], [p[2] for p in red]
-# #     plot!(r_xs, r_ys, fill=(0, :red))
-# #     yv = rotate(yellow, 
-# #     (ex, ey), π)
-# #     y_xs, y_ys = [p[1] for p in yv], [p[2] for p in yv]
-# #     plot!(y_xs, y_ys, fill=(0, :yellow))
-# #     bv = rotate(blue, (ex, ey), π)
-# #     b_xs, b_ys = [p[1] for p in bv], [p[2] for p in bv]
-# #     # plot!(b_xs, b_ys, fill=(0, :blue))
-# #     bv2 = rotate(zip(b_xs, b_ys), (b_xs[2], b_ys[2]), π)
-# #     b2_xs, b2_ys = [p[1] for p in bv2], [p[2] for p in bv2]
-# #     plot!(b2_xs, b2_ys, fill=(0, :blue))
-# #     plot!([dx], [dy], marker=:circle)
-# #     plot!([ex], [ey], marker=:circle)
-# #     plot!([kx], [ky], marker=:circle)
-# #     # plot!([fx], [fy], marker=:circle)
-# #     # plot!([gx], [gy], marker=:circle)
-# #     # plot!([hx], [hy], marker=:circle)
-# #     # plot!([jx], [jy], marker=:circle)
-# #     # plot!(xs_ae, ys_ae)
-# #     # plot!(xs_bf, ys_bf)
-# #     # plot!(xs_af, ys_af)
-# #     # plot!(xs_hj, ys_hj)
-# #     # plot!([xs[3], hx], [ys[3], hy])
-# #     # plot!([jx, ex], [jy, ey])
-# #     # plot!([dx, lx], [dy, ly])
-# #     # plot!([kx, mx], [ky, my])
-# end
 
 end # module
