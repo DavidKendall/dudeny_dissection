@@ -106,7 +106,7 @@ function close(points)
 end
 
 function compute_dissection(side)
-    triangle = (a, b, c) = ((ax, ay), (bx, by), (cx, cy)) = equitriangle(side)
+    triangle = (a, b, c) = equitriangle(side)
     d = mid(a, b)
     e = ex, ey = mid(b, c)
     m_ae = gradient(a, e)
@@ -135,11 +135,6 @@ function compute_dissection(side)
 end
 
 function show_dissection(triangle, red, green, blue, yellow)
-    xs, ys = close(triangle) 
-    r_xs, r_ys = close(red) 
-    b_xs, b_ys = close(blue) 
-    g_xs, g_ys = close(green) 
-    y_xs, y_ys = close(yellow) 
     (a, b, c) = triangle
     dx, dy = mid(a, b)
     ex, ey = mid(b, c)
@@ -147,6 +142,11 @@ function show_dissection(triangle, red, green, blue, yellow)
     side = distance(a, b)
     limits = (-1, side+1)
     tick = floor(limits[1]):ceil(limits[2])
+    xs, ys = close(triangle) 
+    r_xs, r_ys = close(red) 
+    b_xs, b_ys = close(blue) 
+    g_xs, g_ys = close(green) 
+    y_xs, y_ys = close(yellow) 
     plot(xs, ys, legend=false, aspect_ratio=:equal, tick=tick, limits=limits)
     plot!(r_xs, r_ys, fill=(0, :red))
     plot!(b_xs, b_ys, fill=(0, :blue))
@@ -162,28 +162,27 @@ function animate_dissection(triangle, red, green, blue, yellow)
     d = dx, dy = mid(a, b)
     e = ex, ey = mid(b, c)
     k = kx, ky = yellow[1]
-    xs, ys = close(triangle) 
-    g_xs, g_ys = close(green) 
-    α = 0.01
-    total_angle = 0.0
     side = distance(a, b)
     limits = (-side/1.8, 2*side)
     tick = floor(limits[1]):ceil(limits[2])
+    α = 0.01
+    total_angle = 0.0
+    xs, ys = close(triangle) 
+    g_xs, g_ys = close(green) 
     @gif while total_angle ≤ π    
-        plot(xs, ys, legend=false, aspect_ratio=:equal, tick=tick, limits=limits)
-        plot!(g_xs, g_ys, fill=(0, :lightgreen))
         red = rotate(red, d, -α)
-        r_xs, r_ys = close(red) 
-        plot!(r_xs, r_ys, fill=(0, :red))
-        blue = rotate(blue, k, 2α)
         yellow = rotate(yellow, e, α)
-        y_xs, y_ys = close(yellow) 
-        plot!(y_xs, y_ys, fill=(0, :yellow))
+        blue = rotate(blue, k, 2α)
         k = kx, ky = yellow[1]
-        shift = k .- blue[2]
-        blue = [p .+ shift for p in blue]
+        blue = [p .+ (k .- blue[2]) for p in blue]
+        r_xs, r_ys = close(red) 
         b_xs, b_ys = close(blue) 
+        y_xs, y_ys = close(yellow) 
+        plot(xs, ys, legend=false, aspect_ratio=:equal, tick=tick, limits=limits)
+        plot!(r_xs, r_ys, fill=(0, :red))
+        plot!(g_xs, g_ys, fill=(0, :lightgreen))
         plot!(b_xs, b_ys, fill=(0, :blue))
+        plot!(y_xs, y_ys, fill=(0, :yellow))
         plot!([dx], [dy], marker=:circle)
         plot!([ex], [ey], marker=:circle)
         plot!([kx], [ky], marker=:circle)
