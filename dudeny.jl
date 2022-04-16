@@ -16,7 +16,7 @@ function deg_to_rad(d)
     return 2π * (d / 360.0)
 end
 
-function mid((ax,ay), (bx,by))
+function mid((ax, ay), (bx, by))
     return (ax + bx) / 2, (ay + by) / 2
 end
 
@@ -39,8 +39,8 @@ function equitriangle(side)
     return (a, b, c)
 end
 
-function circle(radius, c=(0., 0.); n_points=1000)
-    θ = range(start=0, stop=2π, length=n_points)
+function circle(radius, c = (0.0, 0.0); n_points = 1000)
+    θ = range(start = 0, stop = 2π, length = n_points)
     r = fill(radius, n_points)
     points = zip(θ, r)
     xy = polar_to_xy.(points)
@@ -49,12 +49,12 @@ function circle(radius, c=(0., 0.); n_points=1000)
     return xs, ys
 end
 
-function arc(radius, c=(0., 0.); p1, p2, n_points=500, adj=0.0)
+function arc(radius, c = (0.0, 0.0); p1, p2, n_points = 500, adj = 0.0)
     p1 = p1 .- c
     p2 = p2 .- c
     θ₁, _ = xy_to_polar(p1)
     θ₂, _ = xy_to_polar(p2)
-    θ = range(start=θ₁, stop=θ₂, length=n_points) .+ adj
+    θ = range(start = θ₁, stop = θ₂, length = n_points) .+ adj
     r = fill(radius, n_points)
     points = zip(θ, r)
     xy = polar_to_xy.(points)
@@ -63,11 +63,11 @@ function arc(radius, c=(0., 0.); p1, p2, n_points=500, adj=0.0)
     return xs, ys
 end
 
-function arc_line_intersect(m, c, (px, py), r; x_lower=0, y_lower=0)
+function arc_line_intersect(m, c, (px, py), r; x_lower = 0, y_lower = 0)
     model = Model(Ipopt.Optimizer)
     @variable(model, x >= x_lower)
     @variable(model, y >= y_lower)
-    @NLconstraint(model, (x - px)^2 + (y - py)^2 == r ^ 2)
+    @NLconstraint(model, (x - px)^2 + (y - py)^2 == r^2)
     @constraint(model, y == m * x + c)
     optimize!(model)
     return value(x), value(y)
@@ -83,7 +83,7 @@ function lines_intersect(m1, c1, m2, c2)
     return value(x), value(y)
 end
 
-function rotate(p::Tuple{Real, Real}, c, α)
+function rotate(p::Tuple{Real,Real}, c, α)
     p = p .- c
     θₚ, rₚ = xy_to_polar(p)
     θₚ += α
@@ -98,7 +98,7 @@ function close(points)
     n = length(points) + 1
     xs = Vector{Float64}(undef, n)
     ys = Vector{Float64}(undef, n)
-    for i in 1:(n - 1)
+    for i in 1:(n-1)
         xs[i], ys[i] = points[i]
     end
     xs[n], ys[n] = points[1]
@@ -111,12 +111,12 @@ function compute_dissection(side)
     e = ex, ey = mid(b, c)
     m_ae = gradient(a, e)
     c_ae = y_intercept(m_ae, e)
-    f = arc_line_intersect(m_ae, c_ae, e, side / 2.0, x_lower=ex, y_lower=ey)
+    f = arc_line_intersect(m_ae, c_ae, e, side / 2.0, x_lower = ex, y_lower = ey)
     g = _, gy = mid(a, f)
     m_eb = gradient(e, b)
     c_eb = y_intercept(m_eb, e)
     len_ag = distance(a, g)
-    h = arc_line_intersect(m_eb, c_eb, g, len_ag, y_lower=gy)
+    h = arc_line_intersect(m_eb, c_eb, g, len_ag, y_lower = gy)
     len_eh = distance(e, h)
     j = jx, _ = arc_line_intersect(0, 0, e, len_eh)
     k = jx + side / 2.0, 0.0
@@ -140,21 +140,21 @@ function show_dissection(triangle, red, green, blue, yellow)
     ex, ey = mid(b, c)
     kx, ky = yellow[1]
     side = distance(a, b)
-    limits = (-1, side+1)
+    limits = (-1, side + 1)
     tick = floor(limits[1]):ceil(limits[2])
     xs, ys = close(triangle)
     r_xs, r_ys = close(red)
     b_xs, b_ys = close(blue)
     g_xs, g_ys = close(green)
     y_xs, y_ys = close(yellow)
-    plot(xs, ys, legend=false, aspect_ratio=:equal, tick=tick, limits=limits)
-    plot!(r_xs, r_ys, fill=(0, :red))
-    plot!(b_xs, b_ys, fill=(0, :blue))
-    plot!(g_xs, g_ys, fill=(0, :lightgreen))
-    plot!(y_xs, y_ys, fill=(0, :yellow))
-    plot!([dx], [dy], marker=:circle)
-    plot!([ex], [ey], marker=:circle)
-    plot!([kx], [ky], marker=:circle)
+    plot(xs, ys, legend = false, aspect_ratio = :equal, tick = tick, limits = limits)
+    plot!(r_xs, r_ys, fill = (0, :red))
+    plot!(b_xs, b_ys, fill = (0, :blue))
+    plot!(g_xs, g_ys, fill = (0, :lightgreen))
+    plot!(y_xs, y_ys, fill = (0, :yellow))
+    plot!([dx], [dy], marker = :circle)
+    plot!([ex], [ey], marker = :circle)
+    plot!([kx], [ky], marker = :circle)
 end
 
 function animate_dissection(triangle, red, green, blue, yellow)
@@ -163,7 +163,7 @@ function animate_dissection(triangle, red, green, blue, yellow)
     e = ex, ey = mid(b, c)
     k = kx, ky = yellow[1]
     side = distance(a, b)
-    limits = (-side/1.8, 2*side)
+    limits = (-side / 1.8, 2 * side)
     tick = floor(limits[1]):ceil(limits[2])
     α = 0.01
     total_angle = 0.0
@@ -178,14 +178,14 @@ function animate_dissection(triangle, red, green, blue, yellow)
         r_xs, r_ys = close(red)
         b_xs, b_ys = close(blue)
         y_xs, y_ys = close(yellow)
-        plot(xs, ys, legend=false, aspect_ratio=:equal, tick=tick, limits=limits)
-        plot!(r_xs, r_ys, fill=(0, :red))
-        plot!(g_xs, g_ys, fill=(0, :lightgreen))
-        plot!(b_xs, b_ys, fill=(0, :blue))
-        plot!(y_xs, y_ys, fill=(0, :yellow))
-        plot!([dx], [dy], marker=:circle)
-        plot!([ex], [ey], marker=:circle)
-        plot!([kx], [ky], marker=:circle)
+        plot(xs, ys, legend = false, aspect_ratio = :equal, tick = tick, limits = limits)
+        plot!(r_xs, r_ys, fill = (0, :red))
+        plot!(g_xs, g_ys, fill = (0, :lightgreen))
+        plot!(b_xs, b_ys, fill = (0, :blue))
+        plot!(y_xs, y_ys, fill = (0, :yellow))
+        plot!([dx], [dy], marker = :circle)
+        plot!([ex], [ey], marker = :circle)
+        plot!([kx], [ky], marker = :circle)
         total_angle += α
     end
 end
@@ -197,3 +197,4 @@ function main(side)
 end
 
 end # module
+
